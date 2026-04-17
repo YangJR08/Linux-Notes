@@ -66,6 +66,33 @@ $(TARGET): main.c    # 使用变量
 * `?=`：**条件赋值**。如果变量没被定义过，才给它赋值。
 * `+=`：**追加赋值**。在原值后面加上新内容。
 
+```makefile
+# 1) `=` 延时赋值：后面改了 BAR，FOO 也会跟着变
+FOO = $(BAR)
+BAR = hello
+BAR = world
+
+# 2) `:=` 立即赋值：定义时就把当前值固定下来
+BAZ := $(BAR)
+BAR = changed
+
+# 3) `?=` 条件赋值：只有没定义过时才会生效
+DEBUG ?= 0
+DEBUG ?= 1
+
+# 4) `+=` 追加赋值：在原有内容后继续加选项
+CFLAGS += -Wall
+CFLAGS += -g
+```
+
+```makefile
+all:
+  @echo "FOO=$(FOO)"
+  @echo "BAZ=$(BAZ)"
+  @echo "DEBUG=$(DEBUG)"
+  @echo "CFLAGS=$(CFLAGS)"
+```
+
 ### 3. 常见内置变量
 
 除了自己定义的变量，Makefile 里还有一些很常用的内置变量：
