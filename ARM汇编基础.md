@@ -400,8 +400,8 @@ sbc  r0, r1, r2     @ 按 C 状态做带借位减法
 示例：
 
 ```asm
-and r0, r1, r2
-orr r0, r1, #0x1
-bic r0, r1, #0x3
-eor r0, r1, r2
+and r0, r1, r2      @ r0 = r1 & r2，按位与
+orr r0, r1, #0x1    @ r0 = r1 | 0x1，按位或
+bic r0, r1, #0x3    @ r0 = r1 & ~0x3，清除低 2 位
+eor r0, r1, r2      @ r0 = r1 ^ r2，按位异或
 ```

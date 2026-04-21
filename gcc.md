@@ -28,7 +28,7 @@ gcc -Wall -g -O2 -I ./include -L ./lib -o my_app main.c
 | 不带参数 | `-S` | 否 | 生成汇编文件 `.s` |
 | 不带参数 | `-O2` | 否 | 开启优化等级 2 |
 | 带参数 | `-o my_app` | 是 | 指定输出文件名 |
-| 带参数 | `-I ./include` | 是 | 指定头文件搜索路径 |
+| 带参数 | `-I ./include` / `-I include` | 是 | 指定头文件搜索路径 |
 | 带参数 | `-L ./lib` | 是 | 指定库文件搜索路径 |
 | 带参数 | `-l m` | 是 | 链接库 `libm` |
 | 带参数 | `-D DEBUG` / `-DDEBUG` | 是 | 定义宏 |
@@ -127,5 +127,57 @@ gcc -S main.c
 
 ## 六、快速建议
 
-- 调试阶段：`gcc -Wall -g main.c -o main`
-- 发布阶段：`gcc -Wall -O2 main.c -o main`
+下面给出两类最常用场景：STM32 裸机编译、Linux 嵌入式交叉编译。
+
+### 1. STM32（裸机，arm-none-eabi-gcc）
+
+```bash
+arm-none-eabi-gcc \
+  -mcpu=cortex-m3 -mthumb \
+  -O0 -g3 -Wall \
+  -ffunction-sections -fdata-sections \
+  -DSTM32F103xB -DUSE_HAL_DRIVER \
+  -I Inc -I Drivers/CMSIS/Include -I Drivers/STM32F1xx_HAL_Driver/Inc \
+  -T STM32F103C8Tx_FLASH.ld \
+  Startup/startup_stm32f103xb.s Src/main.c Src/stm32f1xx_it.c \
+  -Wl,--gc-sections -Wl,-Map=build/app.map \
+  -o build/app.elf
+```
+
+参数说明：
+
+- `-mcpu=cortex-m3`：指定目标内核。
+- `-mthumb`：生成 Thumb 指令集代码。
+- `-O0`：关闭优化，便于调试。
+- `-g3`：生成更完整的调试信息。
+- `-ffunction-sections -fdata-sections`：把函数和数据放入独立 section，配合链接器做裁剪。
+- `-D...`：定义宏（芯片型号、HAL 使能等）。
+- `-I ...`：头文件搜索路径。
+- `-T xxx.ld`：指定链接脚本。
+- `-Wl,--gc-sections`：让链接器丢弃未使用代码。
+- `-Wl,-Map=...`：生成 map 文件，便于看内存占用。
+- `-o build/app.elf`：指定输出 ELF 文件。
+
+### 2. Linux 嵌入式（交叉编译，arm-linux-gnueabihf-gcc）
+
+```bash
+arm-linux-gnueabihf-gcc \
+  -O2 -g -Wall -Wextra \
+  -I include \
+  -L lib -Wl,-rpath,'$ORIGIN/lib' \
+  src/main.c src/net.c src/uart.c \
+  -lpthread -lm \
+  -o app
+```
+
+参数说明：
+
+- `arm-linux-gnueabihf-gcc`：面向 ARM Linux（hard-float ABI）的交叉编译器。
+- `-O2`：发布常用优化等级。
+- `-g`：保留调试符号，便于远程调试。
+- `-Wall -Wextra`：开启更多告警。
+- `-I include`：头文件路径（也可写 `-I ./include`）。
+- `-L lib`：库搜索路径。
+- `-Wl,-rpath,'$ORIGIN/lib'`：写入运行时库搜索路径。
+- `-lpthread -lm`：链接线程库和数学库。
+- `-o app`：输出可执行文件名。

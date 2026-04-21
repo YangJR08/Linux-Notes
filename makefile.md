@@ -137,6 +137,8 @@ BAR = world
 | **`$(@F)`** | 目标文件文件名部分 |
 | **`$(<D)`** | 第一个依赖所在目录 |
 | **`$(<F)`** | 第一个依赖文件名部分 |
+| **`$(^D)`** | 所有依赖文件所在目录（去重后） |
+| **`$(^F)`** | 所有依赖文件名部分（去重后） |
 
 ### 举例说明如何运用
 
@@ -189,6 +191,17 @@ obj/main.o: src/main.c include/header.h
 这里的 `%` 会匹配相同的文件名。
 
 也可以给一组明确目标写静态模式规则：
+
+```makefile
+目标列表: 目标模式: 依赖模式
+```
+
+说明：
+
+* `目标列表`：哪些目标要套用这条规则（例如 `$(OBJS)`）。
+* `目标模式`：目标文件的匹配形式（例如 `%.o`）。
+* `依赖模式`：由目标主干名推导依赖（例如 `%.c`）。
+* 这个写法的重点是“只对目标列表里的文件生效”，不会像通用模式规则那样影响所有同模式目标。
 
 ```makefile
 OBJS = main.o util.o
@@ -244,29 +257,56 @@ endif
 Makefile 提供了很多内置函数，下面这些最常见：
 
 * `wildcard`：获取匹配模式的所有文件名。
+  * 语法：`$(wildcard <pattern>)`
   * `SRC = $(wildcard *.c)` -> 获取当前目录下所有 `.c` 文件。
+  * 例如：`$(wildcard src/*.c)` -> `src/main.c src/util.c`
 * `patsubst`：模式替换。
+  * 语法：`$(patsubst <pattern>,<replacement>,<text>)`
   * `OBJ = $(patsubst %.c, %.o, $(SRC))` -> 把 `SRC` 中所有的 `.c` 替换成 `.o`。
+  * 例如：`$(patsubst src/%.c, build/%.o, src/main.c src/util.c)` -> `build/main.o build/util.o`
+  * 后缀替换简写：`$(变量名:旧后缀=新后缀)`
+  * 例如：`OBJ = $(SRC:.c=.o)` -> 把 `SRC` 中每个 `.c` 后缀替换成 `.o`。
+  * 对应关系：`$(SRC:.c=.o)` 等价于 `$(patsubst %.c,%.o,$(SRC))`。
 * `filter`：保留符合模式的字符串。
-  * `CFILES = $(filter %.c, $(SRC))`
+  * 语法：`$(filter <pattern...>,<text>)`
+  * `CFILES = $(filter %.c, $(SRC))` -> 从 `SRC` 中只保留 `.c` 文件。
+  * 例如：`$(filter %.c, main.c util.c readme.txt)` -> `main.c util.c`
 * `filter-out`：去掉符合模式的字符串。
-  * `NO_TEST = $(filter-out test%.c, $(SRC))`
+  * 语法：`$(filter-out <pattern...>,<text>)`
+  * `NO_TEST = $(filter-out test%.c, $(SRC))` -> 从 `SRC` 中去掉以 `test` 开头的 `.c` 文件。
+  * 例如：`$(filter-out test%.c, main.c test1.c test_uart.c)` -> `main.c`
 * `addprefix`：给每个单词加前缀。
-  * `OBJS = $(addprefix obj/, $(OBJ))`
+  * 语法：`$(addprefix <prefix>,<names>)`
+  * `OBJS = $(addprefix obj/, $(OBJ))` -> 给 `OBJ` 中每个文件名前面加上 `obj/`。
+  * 例如：`$(addprefix build/, main.o util.o)` -> `build/main.o build/util.o`
 * `addsuffix`：给每个单词加后缀。
-  * `FILES = $(addsuffix .bak, $(SRC))`
+  * 语法：`$(addsuffix <suffix>,<names>)`
+  * `FILES = $(addsuffix .bak, $(SRC))` -> 给 `SRC` 中每个文件名后面加 `.bak`。
+  * 例如：`$(addsuffix .o, main util)` -> `main.o util.o`
 * `dir`：提取目录名。
+  * 语法：`$(dir <names>)`
   * `$(dir src/main.c)` -> `src/`
+  * 例如：`$(dir src/main.c include/header.h)` -> `src/ include/`
 * `notdir`：去掉目录部分。
+  * 语法：`$(notdir <names>)`
   * `$(notdir src/main.c)` -> `main.c`
+  * 例如：`$(notdir src/main.c include/header.h)` -> `main.c header.h`
 * `basename`：去掉后缀。
+  * 语法：`$(basename <names>)`
   * `$(basename main.c)` -> `main`
+  * 例如：`$(basename src/main.c include/header.h)` -> `src/main include/header`
 * `subst`：字符串替换。
+  * 语法：`$(subst <from>,<to>,<text>)`
   * `$(subst .c,.o,main.c)` -> `main.o`
+  * 例如：`$(subst src,build,src/main.c)` -> `build/main.c`
 * `shell`：执行 Shell 命令并返回结果。
+  * 语法：`$(shell <command>)`
   * `$(shell pwd)` -> 当前目录
+  * 例如：`$(shell echo hello)` -> `hello`
 * `foreach`：遍历列表。
-  * `$(foreach f,$(SRC),$(f))`
+  * 语法：`$(foreach <var>,<list>,<text>)`
+  * `$(foreach f,$(SRC),$(f))` -> 依次遍历 `SRC` 里的每个文件名并原样输出。
+  * 例如：`$(foreach f,main.c util.c,$(f).o)` -> `main.c.o util.c.o`
 
 ---
 
