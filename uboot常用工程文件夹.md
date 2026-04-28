@@ -84,5 +84,3 @@ obj-$(CONFIG_CMD_BOOTM) += bootm.o
 ## 4.5 README 文件
 
 详细介绍 U-Boot 的编译方法、各文件夹含义及常用命令，是了解 U-Boot 项目的重要文档。
-
-
